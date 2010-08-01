@@ -52,7 +52,7 @@ Library
 
   Hs-Source-Dirs: .
 
-  GHC-Options:    -Wall -Werror -fno-warn-unused-binds
+  GHC-Options:    -Wall -fno-warn-unused-binds
   if flag(optimize)
     GHC-Options:  -funbox-strict-fields -O2 -fspec-constr -fdicts-cheap
 
@@ -71,6 +71,6 @@ Executable test-binary-protocol-zmq
     Other-Modules:
       Control.Monad.BinaryProtocol.ZMQ
 
-    GHC-Options:   -Wall -Werror -fno-warn-unused-binds -threaded
+    GHC-Options:   -Wall -fno-warn-unused-binds -threaded
     if flag(optimize)
       GHC-Options: -funbox-strict-fields -O2 -fspec-constr -fdicts-cheap
