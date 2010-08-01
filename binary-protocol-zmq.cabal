@@ -1,5 +1,5 @@
 Name:          binary-protocol-zmq
-Version:       1.0
+Version:       0.1
 Stability:     Experimental
 
 Synopsis:      Monad to ease implementing a binary network protocol over ZeroMQ
@@ -22,6 +22,9 @@ License-File:  LICENSE
 
 Cabal-Version: >= 1.6
 Build-Type:    Simple
+
+Extra-Source-Files:
+  README.rst
 
 Source-Repository head
   Type:     git
