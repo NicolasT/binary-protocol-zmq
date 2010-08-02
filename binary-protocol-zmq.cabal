@@ -1,5 +1,5 @@
 Name:          binary-protocol-zmq
-Version:       0.1
+Version:       0.2
 Stability:     Experimental
 
 Synopsis:      Monad to ease implementing a binary network protocol over ZeroMQ
