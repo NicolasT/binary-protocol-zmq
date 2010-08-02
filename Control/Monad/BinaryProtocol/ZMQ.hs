@@ -44,6 +44,10 @@ newtype BinaryProtocol a b c = BP {
 -- | Take a @BinaryProtocol@ action and run it on the given ZeroMQ sockets for
 --   respectively reading and writing. The two given handles are allowed to be
 --   the same if the same handle is used for reading and writing.
+--
+--   Since ZeroMQ sockets are not thread-safe (unlike a Context object), make
+--   sure you use any socket you create in the OS thread it was created in
+--   only. Use @forkOS@ where necessary.
 runProtocol :: BinaryProtocol a b c -> ZMQ.Socket a -> ZMQ.Socket b -> IO c
 runProtocol p a b = R.runReaderT (runBP p) (a, b)
 

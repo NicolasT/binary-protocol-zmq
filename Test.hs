@@ -5,13 +5,10 @@ import qualified Test.Framework as TF
 import Test.Framework.Providers.HUnit
 import Test.HUnit
 
-import Control.Concurrent (forkIO)
+import Control.Concurrent (forkOS)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, readMVar, putMVar)
 import Control.Exception (finally)
-import Control.Monad (forM_)
 import Control.Monad.Trans (liftIO)
-
-import System.IO (hPutStrLn, stderr)
 
 import qualified Data.Binary as B
 
@@ -82,26 +79,47 @@ makeExchangeTest correct_result protocol1 protocol2 = do
     resultMVar <- newEmptyMVar
 
     ctx <- ZMQ.init 1
-    (chan_in1, chan_out2) <- makeChannels ctx address1
-    (chan_in2, chan_out1) <- makeChannels ctx address2
 
-    forkIO $ runProtocol (protocol1 resultMVar) chan_in1 chan_out1
-    forkIO $ runProtocol (protocol2 resultMVar) chan_in2 chan_out2
+    lock1 <- newEmptyMVar
+    lock2 <- newEmptyMVar
 
-    result <- readMVar resultMVar `finally` do
-        forM_ [chan_in1, chan_in2] ZMQ.close
-        forM_ [chan_out1, chan_out2] ZMQ.close
-        ZMQ.term ctx
+    -- ZeroMQ sockets can only be used in the thread which created them.
+    -- We need some magic to get this right.
+    f $ forkOS $ runProtocol' address1 address2 ctx lock1 lock2
+        (protocol1 resultMVar)
+    f $ forkOS $ runProtocol' address2 address1 ctx lock2 lock1
+        (protocol2 resultMVar)
+
+    result <- readMVar resultMVar `finally` ZMQ.term ctx
 
     assertEqual "Was the correct result computed?" correct_result result
 
   where address1 = "inproc://pipe1"
         address2 = "inproc://pipe2"
 
+        f :: IO a -> IO ()
+        f a = a >> return ()
+
+        runProtocol' :: String -> String -> ZMQ.Context ->
+            MVar () -> MVar () ->
+            BinaryProtocol ZMQ.Up ZMQ.Down () -> IO ()
+        runProtocol' a1 a2 ctx l1 l2 p = do
+            chan_in <- ZMQ.socket ctx ZMQ.Up
+            chan_out <- ZMQ.socket ctx ZMQ.Down
+
+            ZMQ.bind chan_in a1
+            putMVar l1 ()
+
+            f $ readMVar l2
+            ZMQ.connect chan_out a2
+
+            runProtocol p chan_in chan_out `finally` do
+                ZMQ.close chan_in
+                ZMQ.close chan_out
+
+
 testAddition :: IO ()
-testAddition = do
-    hPutStrLn stderr
-        "Warning: this test locks up sometimes, needs investigation"
+testAddition =
     makeExchangeTest (3 :: Int)
         (\resultMVar -> do
              send (1 :: Int)
